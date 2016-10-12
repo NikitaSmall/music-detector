@@ -2,7 +2,6 @@ package detector
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -27,18 +26,18 @@ func getTrailingBytes(filename string, n int) ([]byte, error) {
 	return b, nil
 }
 
-func moveFileByTags(outputFolder, originalSong string, songTags map[string]string) {
+func moveFileByTags(outputFolder, originalSong string, songTags map[string]string) error {
 	err := createDirStructure(outputFolder, songTags)
 	if err != nil {
-		log.Printf("Error during creating dir structure by tags: %s", err)
-		return
+		return fmt.Errorf("Error during creating dir structure by tags: %s", err)
 	}
 
 	err = moveSongToTagStructure(outputFolder, originalSong, songTags)
 	if err != nil {
-		log.Printf("Error during track moving: %s", err)
-		return
+		return fmt.Errorf("Error during track moving: %s", err)
 	}
+
+	return nil
 }
 
 func createDirStructure(outputFolder string, songTags map[string]string) error {

@@ -25,19 +25,39 @@ func SelectSongs(inputFolder string) []string {
 }
 
 func CategorizeFolder(outputFolder string, songs []string) {
+	done := make(chan bool, len(songs))
+
 	for _, song := range songs {
-		b, err := getTrailingBytes(song, 128)
-		if err != nil {
-			log.Printf("Cannot parse end of file: %s", err)
-			continue
-		}
-
-		tags, err := mp3ID3v1(b).Parse()
-		if err != nil {
-			log.Printf("Cannot parse tags for song: %s", err)
-			continue
-		}
-
-		moveFileByTags(outputFolder, song, tags)
+		go processSong(outputFolder, song, done)
 	}
+
+	results := make([]bool, 0)
+	for len(results) < len(songs) {
+		results = append(results, <-done)
+	}
+}
+
+func processSong(outputFolder, song string, done chan bool) {
+	b, err := getTrailingBytes(song, 128)
+	if err != nil {
+		log.Printf("Cannot parse end of file: %s", err)
+		done <- false
+		return
+	}
+
+	tags, err := mp3ID3v1(b).Parse()
+	if err != nil {
+		log.Printf("Cannot parse tags for song: %s", err)
+		done <- false
+		return
+	}
+
+	err = moveFileByTags(outputFolder, song, tags)
+	if err != nil {
+		log.Printf("Cannot move song by tags: %s", err)
+		done <- false
+		return
+	}
+
+	done <- true
 }
